@@ -15,6 +15,7 @@ import okio.ByteString;
 import org.apache.commons.lang3.tuple.Pair;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.socket.*;
@@ -49,21 +50,24 @@ public class ContractWebSocketHandel implements WebSocketHandler {
 
     //session 和最后一次的pong time
     private ConcurrentHashMap<WebSocketSession, Long> clientSessionMap = new ConcurrentHashMap<>(5000); //session -> 上一次pong的时间
-
     //topic 和订阅的session
     private ConcurrentHashMap<String, Set<WebSocketSession>> clientTopicSessionMap = new ConcurrentHashMap<>(5000);  //topic -> Set<session>
 
-    private ConcurrentHashMap<String, WebSocketSession> reqSessionMap = new ConcurrentHashMap<>(5000); //req-id -> Session
 
+    //hb websocket time
     private ConcurrentHashMap<WebSocket, Long> huobiServerSocketMap = new ConcurrentHashMap<>(1000);
+    //hb topic websocket
     private ConcurrentHashMap<String, WebSocket> huobiServerTopicSocketMap = new ConcurrentHashMap<>(5000);
 
     private ConcurrentHashMap<WebSocket, AtomicInteger> huobiServerReqSocketMap = new ConcurrentHashMap<>(10); //socket leftTimes
+
+    private ConcurrentHashMap<String, WebSocketSession> reqSessionMap = new ConcurrentHashMap<>(5000); //req-id -> Session
 
 
     public ContractWebSocketHandel(String module) {
         this.module = module;
     }
+
 
     @Scheduled(cron = "0/5 * * * * ?")
     public void pingSession() {
@@ -83,10 +87,11 @@ public class ContractWebSocketHandel implements WebSocketHandler {
     }
 
 
+    @Async
     @Scheduled(cron = "0/16 * * * * ?")
     public void killSession() {
         Set<WebSocketSession> sessions = clientSessionMap.keySet().stream().collect(Collectors.toSet());
-        log.info("module:{} session number:{}", module, sessions.size());
+        log.info("module:{} session number:{} Thread {}", module, sessions.size(), Thread.currentThread().getName());
         if (CollectionUtils.isEmpty(sessions)) {
             sessions = new HashSet<>();
         }
@@ -213,21 +218,21 @@ public class ContractWebSocketHandel implements WebSocketHandler {
 //                    }
 //                }
 //            }
-            if (!requestTopic.startsWith("market.") && !messageBody.contains(".heartbeat") && !messageBody.contains(".contract_info")) {
-                log.warn("error requestBody : {}", messageBody);
-            } else {
-                try {
-                    if (topicPair.getLeft() != TopicKeyEnum.REQ) {
-                        Set<WebSocketSession> sessions = clientTopicSessionMap.getOrDefault(requestTopic, new HashSet<>());
-                        sessions.add(session);
-                        clientTopicSessionMap.put(requestTopic, sessions);
-                        huobiWebsocketConnect(json, topicPair);
-                    }
-                } catch (Exception e) {
-                    log.warn("handle websocket message:{} from user has error", json, e);
+//            if (!requestTopic.startsWith("market.") && !messageBody.contains(".heartbeat") && !messageBody.contains(".contract_info")) {
+//                log.warn("error requestBody : {}", messageBody);
+//            } else {
+            try {
+                if (topicPair.getLeft() != TopicKeyEnum.REQ) {
+                    Set<WebSocketSession> sessions = clientTopicSessionMap.getOrDefault(requestTopic, new HashSet<>());
+                    sessions.add(session);
+                    clientTopicSessionMap.put(requestTopic, sessions);
+                    huobiWebsocketConnect(json, topicPair);
                 }
+            } catch (Exception e) {
+                log.warn("handle websocket message:{} from user has error", json, e);
             }
         }
+//        }
     }
 
     @Override
@@ -441,7 +446,7 @@ public class ContractWebSocketHandel implements WebSocketHandler {
                 }
             });
         } else { //req请求
-            String reqId = JsonUtil.getString(json,".id", "");
+            String reqId = JsonUtil.getString(json, ".id", "");
             WebSocketSession webSocketSession = reqSessionMap.get(reqId);
             if (webSocketSession == null) {
                 return;
