@@ -1,4 +1,4 @@
-package io.best.tool.netty;
+package io.best.tool.netty.string;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

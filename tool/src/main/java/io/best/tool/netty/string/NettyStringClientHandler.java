@@ -1,4 +1,4 @@
-package io.best.tool.netty;
+package io.best.tool.netty.string;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -20,5 +20,6 @@ public class NettyStringClientHandler extends ChannelInboundHandlerAdapter {
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         ByteBuf buf = (ByteBuf) msg;
         System.out.println("接受到服务端的返回消息：" + buf.toString(CharsetUtil.UTF_8));
+        ctx.writeAndFlush(Unpooled.copiedBuffer(ctx.channel().id().asLongText() + ":已接收", CharsetUtil.UTF_8));
     }
 }
