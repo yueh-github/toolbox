@@ -1,0 +1,22 @@
+// confirm status
+Select * from tb_market where exchange_id = {{ exchangeId }} and symbol_id = '{{ source }}';
+Select * from tb_market where exchange_id = {{ exchangeId }} and symbol_id = '{{ target }}';
+
+// close symbol
+Update tb_market set status = 0, status_string = 'CLOSED' where exchange_id = {{ exchangeId }} and symbol_id = '{{ source }}';
+Update tb_market set status = 0, status_string = 'CLOSED' where exchange_id = {{ exchangeId }} and symbol_id = '{{ target }}';
+
+// confirm size of kline
+select count(1) from tb_quote_kline_{{ exchangeId }} where exchange_id = {{ exchangeId }} and symbol = '{{ source }}';
+select count(1) from tb_quote_kline_{{ exchangeId }} where exchange_id = {{ exchangeId }} and symbol = '{{ target }}';
+
+// update symbol
+Update tb_quote_kline_{{ exchangeId }} set symbol = '{{ target }}' where exchange_id = {{ exchangeId }} and symbol = '{{ source }}';
+Update tb_quote_realtime set symbol = '{{ target }}' where exchange_id = {{ exchangeId }} and symbol = '{{ source }}';
+
+// confirm size of kline
+select count(1) from tb_quote_kline_{{ exchangeId }} where exchange_id = {{ exchangeId }} and symbol = '{{ source }}';
+select count(1) from tb_quote_kline_{{ exchangeId }} where exchange_id = {{ exchangeId }} and symbol = '{{ target }}';
+
+// open symbol
+Update tb_market set status = 1, status_string = 'OPENED' where exchange_id = {{ exchangeId }} and symbol_id = '{{ target }}';
