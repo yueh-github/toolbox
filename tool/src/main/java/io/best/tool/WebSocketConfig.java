@@ -1,5 +1,6 @@
 package io.best.tool;
 
+import io.best.tool.websocket.NewWebsocketHandel;
 import io.best.tool.ws.ContractWebSocketHandel;
 import io.best.tool.ws.ContractWebSocketHandshakeInterceptor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,10 +26,18 @@ public class WebSocketConfig implements WebSocketConfigurer {
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(contractWebSocketHandel(), "/api/ws/contract-ws", "/mapi/ws/contract-ws")
                 .setAllowedOrigins("*").addInterceptors(contractWebSocketHandshakeInterceptor);
+
+        registry.addHandler(newWebsocketHandel(), "/api/ws/test-ws", "/mapi/ws/test-ws")
+                .setAllowedOrigins("*").addInterceptors(contractWebSocketHandshakeInterceptor);
     }
 
     @Bean
     public ContractWebSocketHandel contractWebSocketHandel() {
         return new ContractWebSocketHandel("linear-swap-ws");
+    }
+
+    @Bean
+    public NewWebsocketHandel newWebsocketHandel() {
+        return new NewWebsocketHandel();
     }
 }
